@@ -1,0 +1,199 @@
+---
+title: "Lipscomb Baseball"
+output:
+  flexdashboard::flex_dashboard:
+    pdf_document: default
+    orientation: rows
+  html_document:
+    df_print: paged
+runtime: shiny
+---
+
+<style>                     
+.navbar {
+  background-color:purple;
+  border-color:yellow;
+}
+.navbar-brand {
+color:yellow!important;
+}
+</style>  
+
+
+```{r data, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(flexdashboard)
+library(DT)
+library(data.table)
+library(shiny)
+library(plotly)
+Pitch<- read.csv ("Lipscomb University Baseball 2020-2021/Player Development/TrackMan 2021/Season/Creighton/20210226-Lipscomb-1_unverified.csv")
+```
+
+
+
+Player Information
+===================
+
+Inputs {.sidebar}
+-------------------------------------
+
+```{r dynamic elements}
+
+selectInput("player",label="Player",
+            choices=sort(unique(Pitch$Pitcher)),
+            selected="NULL",
+            multiple = TRUE)
+
+checkboxGroupInput("group","Target Group",
+                   choices=sort(unique(Pitch$PitcherTeam)),
+            
+                          selected=0)
+```
+
+
+Row
+------
+
+### Table 1
+
+```{r}
+Pitch$RelSpeed <- round(Pitch$RelSpeed, 0)
+Pitch$SpinRate <- round(Pitch$SpinRate, 0)
+new <- reactive(Pitch%>%
+                  filter(Pitcher %in% input$player))
+renderDataTable({
+if(length(input$player)==0){
+datatable(Pitch[1:10,]%>%
+                  select(Pitcher, RelSpeed, SpinRate),extensions = 'Buttons',editable = TRUE, options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print','csv'),scrollY ="2000px",scrollX = TRUE, paging = F
+  ), rownames = F)
+}
+else{
+datatable(new() %>% filter(Pitcher%in% input$player) %>% select(Pitcher, RelSpeed, SpinRate), extensions = 'Buttons',editable = TRUE, options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print','csv'),scrollY ="2000px",scrollX = TRUE, paging = F
+), rownames = F)}
+})
+
+```
+### Table 2
+
+Row
+----------
+
+### Graph 1
+
+
+```{r}
+renderPlotly({
+  
+ggplotly(
+  
+new()%>%
+  ggplot(aes(x=RelSpeed,y=SpinRate),label=Pitcher)+
+  geom_point()+
+  geom_smooth()+
+  theme_bw()
+)  
+  
+})
+```
+
+Graphics
+===================
+
+
+Row
+------
+
+```{r}
+
+renderPlotly({
+  
+  ggplotly(new()%>% ggplot(aes(x = PlateLocSide,y = PlateLocHeight, color = TaggedPitchType)) + geom_point() + theme_bw() + ggtitle("Todd Henderson Overall vs. App State 4/18/21") + geom_segment(aes(x = -.85, y = 3.5, xend = .85, yend = 3.5))+ geom_segment(aes(x =-.85, y = 1.5, xend = .85, yend = 1.5))+ geom_segment(aes(x = .85, y = 1.5 , xend = .85, yend = 3.5))+geom_segment(aes(x = -.85, y = 1.5, xend = -.85 , yend = 3.5)))
+  
+})
+
+```
+
+
+Pitchers Movement Plot
+======================
+
+Inputs {.sidebar}
+-------------------------------------
+
+```{r dynamic elements 2}
+
+selectInput("player",label="Player",
+            choices=sort(unique(Pitch$Pitcher)),
+            selected="NULL",
+            multiple = TRUE)
+
+checkboxGroupInput("group","Target Group",
+                   choices=sort(unique(Pitch$PitcherTeam)),
+                   selected=0)
+
+```
+
+Row
+----
+
+### Graph 1
+
+```{r pitchers movement plot}
+
+new <- reactive(Pitch%>%
+                  filter(Pitcher %in% input$player))
+
+renderPlotly({
+  
+  ggplotly(new()%>% ggplot(aes(x = PlateLocSide,y = PlateLocHeight, color = TaggedPitchType)) + geom_point() + theme_bw() + ggtitle("Todd Henderson Overall vs. App State 4/18/21") + geom_segment(aes(x = -.85, y = 3.5, xend = .85, yend = 3.5))+ geom_segment(aes(x =-.85, y = 1.5, xend = .85, yend = 1.5))+ geom_segment(aes(x = .85, y = 1.5 , xend = .85, yend = 3.5))+geom_segment(aes(x = -.85, y = 1.5, xend = -.85 , yend = 3.5)))
+  
+})
+```
+
+### Graph 2
+
+```{r pitchers plot}
+
+renderPlotly({
+  
+ggplotly(
+  
+new()%>%
+  ggplot(aes(x=RelSpeed,y=SpinRate),label=Pitcher)+
+  geom_point()+
+  geom_smooth()+
+  theme_bw()
+)  
+  
+})
+
+```
+
+### Graph 3
+
+
+```{r pitchers movement plot 3}
+
+new <- reactive(Pitch%>%
+                  filter(Pitcher %in% input$player))
+
+renderPlotly({new() %>% ggplot(aes(x = (HorzBreak * -1),y = InducedVertBreak,color = PitchType)) + geom_point(alpha = 0.4) + theme_bw() + xlim(-20,20) + ylim(-20,20) + ggtitle('Pitcher X Movement Plot 2019 (Catchers Perspective)') + xlab("Horizontal Movement (inches)") + ylab("Vertical Movement (inches)") + geom_vline(xintercept = 0,linetype = 'dashed') + geom_hline(yintercept = 0,linetype = 'dashed') + annotate("text",x = 0,y = 20,label = "Carry") + annotate("text",x = 0,y = -20,label = "Sink") + annotate("text",x = -18.5,y = 1,label = "Gloveside") + annotate("text",x = 18.5,y = 1,label = "Armside") + annotate("text",x = 8,y = 14,label = 93) + annotate("text",x = 12,y = 5,label = 87) + annotate("text",x = -5,y = 1,label = 84) + annotate("label", x = 0, y = 20, label = "Carry") + annotate("label",x = 0,y = -20,label = "Sink") + annotate("label",x = 18.5,y=1.5,label = "Armside") + annotate("label",x = -18,y = 1.5,label = "Gloveside")})
+
+```
+
+```
+```
+
+
+
+
+
+
+
+
